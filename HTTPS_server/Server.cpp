@@ -8,9 +8,37 @@
 #include <arpa/inet.h>
 #include <cstring>
 #include <netdb.h>
+#include <list>
+
+class Response {
+
+};
+
+class requestHendler {
+  virtual Response hendler() = 0;
+};
+
+class staticVebsite : public requestHendler {
+  virtual Response hendler () override {
+
+  }
+};
+
+class methodPath : public  requestHendler {
+  virtual Response hendler () override {
+
+  }
+};
+
+class path : public requestHendler {
+  virtual Response hendler () override {
+
+  }
+};
 
 class HTTPS {
 private:
+  std::list<requestHendler*> hendlers;
   sockaddr_in address;
   int Port;
   int SocketFD;
@@ -27,33 +55,50 @@ public:
   }
   ~HTTPS();
 
+  void run();
   void getRequest();
   void sendReponse();
+  void checkSocket();
+  void checkBound();
+  void checkListen();
+
 
 };
 
-void HTTPS::getRequest() {
-
+void HTTPS::checkSocket() {
   if(SocketFD < 0){
     std::cerr << "Error while creating a socket" << std::endl;
+    HTTPS::~HTTPS();
     exit(errno);
   }
+}
 
-
+void HTTPS::checkBound() {
   int bound = bind(SocketFD, (const struct sockaddr*) &address, sizeof(address));
 
   if(bound < 0){
     std::cerr << "Could not bind to given port" << std::endl;
+    HTTPS::~HTTPS();
     exit(errno);
   }
+}
 
+void HTTPS::checkListen() {
   int listening = listen(SocketFD, 1024);
 
   if(listening < 0){
     std::cerr << "Could not start listening" << std::endl;
+    HTTPS::~HTTPS();
     exit(errno);
   }
+}
 
+void HTTPS::run() {
+
+  checkSocket();
+  checkBound();
+  checkListen();
+  
   while(true){
     sockaddr_in clientAddress;
     unsigned int clientAddressLength;
@@ -62,17 +107,15 @@ void HTTPS::getRequest() {
     int clientPort = ntohs(clientAddress.sin_port);
     char* clientIp = inet_ntoa(clientAddr);
 
-    void*  number;
-    ssize_t receivedBytes = recv(clientFd, (void*) &number, sizeof(number), 0);
-
-    if(receivedBytes < 0){
-      std::cerr << "Could not read from client. Error: " << strerror(errno) << std::endl;
-      close(clientFd);
-      continue;
-    }
+    //
 
     close(clientFd);
   }
 
+}
 
+
+int main () {
+
+  return 0;
 }
