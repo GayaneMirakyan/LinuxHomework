@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <cstring>
 #include <netdb.h>
+#include <stdexcept>
 #include <list>
 
 class Response {
@@ -15,97 +16,118 @@ class Response {
 };
 
 class requestHendler {
-  virtual Response hendler() = 0;
+  virtual Response handler() = 0;
 };
 
 class staticVebsite : public requestHendler {
-  virtual Response hendler () override {
+  virtual Response handler() override {
 
   }
 };
 
-class methodPath : public  requestHendler {
-  virtual Response hendler () override {
+class methodPath : public requestHendler {
+  virtual Response handler() override {
 
   }
 };
 
 class path : public requestHendler {
-  virtual Response hendler () override {
+  virtual Response handler() override {
 
   }
 };
 
 class HTTPS {
 private:
-  std::list<requestHendler*> hendlers;
+  std::list<requestHendler *> hendlers;
   sockaddr_in address;
-  int Port;
-  int SocketFD;
-
-
+  int port;
+  int socketFD;
 public:
-  HTTPS(int port_m, sockaddr_in address_m) : Port(port_m), address(address_m) {
+  HTTPS(int port_m) : port(port_m) {
 
-    SocketFD = socket(AF_INET, SOCK_STREAM, 0);
+    socketFD = socket(AF_INET, SOCK_STREAM, 0);
+    // validate socket descriptor
+    if (socketFD < 0) {
+      std::string message = strerror(errno);
+      throw std::invalid_argument("Error while creating a socket: " + message);
+    }
 
     address.sin_family = AF_INET;
-    address.sin_port = htons(Port);
-    address.sin_addr.s_addr = htonl (INADDR_ANY);
+    address.sin_port = htons(port);
+    address.sin_addr.s_addr = htonl(INADDR_ANY);
   }
-  ~HTTPS();
+  ~HTTPS() = default;
 
-  void run();
+  [[noreturn]] void run();
   void getRequest();
   void sendReponse();
-  void checkSocket();
-  void checkBound();
-  void checkListen();
-
+  void bindSocket();
+  void listenClients();
 
 };
 
-void HTTPS::checkSocket() {
-  if(SocketFD < 0){
-    std::cerr << "Error while creating a socket" << std::endl;
-    HTTPS::~HTTPS();
-    exit(errno);
+void parse() {
+
+}
+
+void HTTPS::bindSocket() {
+  if (bind(socketFD, (const struct sockaddr *) &address, sizeof(address)) < 0) {
+    std::string message = strerror(errno);
+    throw std::invalid_argument("Could not bind to given port: " + message);
   }
 }
 
-void HTTPS::checkBound() {
-  int bound = bind(SocketFD, (const struct sockaddr*) &address, sizeof(address));
-
-  if(bound < 0){
-    std::cerr << "Could not bind to given port" << std::endl;
-    HTTPS::~HTTPS();
-    exit(errno);
+void HTTPS::listenClients() {
+  if (listen(socketFD, 1024) < 0) {
+    std::string message = strerror(errno);
+    throw std::invalid_argument("Could not bind to given port: " + message);
   }
 }
 
-void HTTPS::checkListen() {
-  int listening = listen(SocketFD, 1024);
+void g(int x, int y) {
 
-  if(listening < 0){
-    std::cerr << "Could not start listening" << std::endl;
-    HTTPS::~HTTPS();
-    exit(errno);
-  }
 }
 
-void HTTPS::run() {
+struct F {
+  void operator()(int x, int y) {
 
-  checkSocket();
-  checkBound();
-  checkListen();
-  
-  while(true){
-    sockaddr_in clientAddress;
-    unsigned int clientAddressLength;
-    int clientFd = accept(SocketFD,(struct sockaddr*)  &clientAddress, &clientAddressLength);
+  }
+};
+
+[[noreturn]] void HTTPS::run() {
+  bindSocket();
+  listenClients();
+  std::cout << "Server listens on " << port << std::endl;
+  while (true) {
+    sockaddr_in clientAddress{};
+    unsigned int clientAddressLength = sizeof(clientAddress);
+    std::cout << "Waiting new client..." << std::endl;
+    int clientFd = accept(socketFD, (struct sockaddr *) &clientAddress, &clientAddressLength);
+    if (clientFd < 0) {
+      std::cerr << "Error while accepting connection request" << strerror(errno) << std::endl;
+      // retry connect to clients
+      continue;
+    }
+    std::cout << "New client connected" << std::endl;
+
+    const int BUFFER_SIZE = (1 << 10);
+    char buffer[BUFFER_SIZE];
+    ssize_t offset = 0;
+    ssize_t readBytes = 0;
+    while ((readBytes = recv(clientFd, buffer + offset, 8, 0)) > 0) {
+      offset += readBytes;
+    }
+    if (readBytes < 0) {
+      std::cerr << "Error while reading" << strerror(errno) << std::endl;
+    }
+    buffer[offset] = '\0';
+    int number = std::stoi(buffer);
+    std::cout << "Received from client " << number << std::endl;
+
     struct in_addr clientAddr = clientAddress.sin_addr;
     int clientPort = ntohs(clientAddress.sin_port);
-    char* clientIp = inet_ntoa(clientAddr);
+    char *clientIp = inet_ntoa(clientAddr);
 
     //
 
@@ -114,8 +136,9 @@ void HTTPS::run() {
 
 }
 
+int main() {
 
-int main () {
-
+  HTTPS server(9090);
+  server.run();
   return 0;
 }
