@@ -13,7 +13,9 @@
 #include <netdb.h>
 #include <stdexcept>
 #include <list>
-#include "json.hpp"
+#include "json_hpp/json.hpp"
+#include <fstream>
+
 
 
 namespace https{
@@ -70,6 +72,7 @@ public:
   void sendReponse();
   void bindSocket();
   void listenClients();
+  void parse();
 
 };
 }

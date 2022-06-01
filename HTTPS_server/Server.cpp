@@ -1,7 +1,14 @@
 #include "include/Server.h"
 
+using namespace nlohmann;
 namespace https{
-void parse() {
+void parse(char* buffer) {
+  std::string s(buffer);
+  nlohmann::json request;
+  request = s;
+  std::ofstream o("pretty.json");
+  o << request.dump(4) << std::endl;
+  std::cout << request.dump(4) << std::endl;
 
 }
 void HTTPS::bindSocket() {
@@ -45,9 +52,9 @@ void HTTPS::listenClients() {
       std::cerr << "Error while reading" << strerror(errno) << std::endl;
     }
     buffer[offset] = '\0';
-    int number = std::stoi(buffer);
-    std::cout << "Received from client " << number << std::endl;
-
+   // int number = std::stoi(buffer);
+   // std::cout << "Received from client " << number << std::endl;
+    https::parse(buffer);
     struct in_addr clientAddr = clientAddress.sin_addr;
     int clientPort = ntohs(clientAddress.sin_port);
     char *clientIp = inet_ntoa(clientAddr);
@@ -59,11 +66,10 @@ void HTTPS::listenClients() {
 
 }
 
-}
+} // namespasce https
 
 
 int main() {
-
   https::HTTPS server(9090);
   server.run();
   return 0;
