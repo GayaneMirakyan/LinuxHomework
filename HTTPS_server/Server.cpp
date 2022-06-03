@@ -2,14 +2,10 @@
 
 using namespace nlohmann;
 namespace https{
-void parse(char* buffer) {
+json HTTPS::makeJson(char* buffer) {
   std::string s(buffer);
-  nlohmann::json request;
-  request = s;
-  std::ofstream o("pretty.json");
-  o << request.dump(4) << std::endl;
-  std::cout << request.dump(4) << std::endl;
-
+  nlohmann::json request(s);
+  return request;
 }
 void HTTPS::bindSocket() {
   if (bind(socketFD, (const struct sockaddr *) &address, sizeof(address)) < 0) {
@@ -52,9 +48,8 @@ void HTTPS::listenClients() {
       std::cerr << "Error while reading" << strerror(errno) << std::endl;
     }
     buffer[offset] = '\0';
-   // int number = std::stoi(buffer);
-   // std::cout << "Received from client " << number << std::endl;
-    https::parse(buffer);
+    nlohmann::json module(makeJson(buffer));
+    std::cout << module << std::endl;
     struct in_addr clientAddr = clientAddress.sin_addr;
     int clientPort = ntohs(clientAddress.sin_port);
     char *clientIp = inet_ntoa(clientAddr);

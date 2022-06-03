@@ -72,8 +72,7 @@ public:
   void sendReponse();
   void bindSocket();
   void listenClients();
-  void parse();
-
+  nlohmann::json makeJson(char* buffer);
 };
 }
 
