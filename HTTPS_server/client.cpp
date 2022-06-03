@@ -30,12 +30,11 @@ int main(int argc, char **argv) {
     exit(errno);
   }
 
-  std::string number;
+  std::string data;
   std::cout << "Connected. Please enter a number" << std::endl;
-  std::cin >> number;
-  std::getline(std::cin,number);
-  
-  ssize_t sentBytes = send(serverSocket, number.data(), number.size(), 0);
+
+  std::cin >> data;
+  ssize_t sentBytes = send(serverSocket, data.data(), data.size(), 0);
 
   if (sentBytes < 0) {
     std::cerr << "Could not send bytes to the server: Error " << strerror(errno) << std::endl;
@@ -45,16 +44,19 @@ int main(int argc, char **argv) {
   // finish transmiting data to server
   shutdown(serverSocket, 1);
 
-  int result;
-
-  ssize_t receivedBytes = recv(serverSocket, &result, sizeof(result), 0);
-
-  if (receivedBytes < 0) {
-    std::cerr << "Could not read from the server" << std::endl;
-    exit(errno);
+  const int BUFFER_SIZE = (1 << 10);
+  char buffer[BUFFER_SIZE];
+  ssize_t offset = 0;
+  ssize_t readBytes;
+  while ((readBytes = recv(serverSocket, buffer + offset, 8, 0)) > 0) {
+    offset += readBytes;
   }
+  if (readBytes < 0) {
+    std::cerr << "Error while reading" << strerror(errno) << std::endl;
+  }
+  buffer[offset] = '\0';
 
-  std::cout << "Got result from server: " << result << std::endl;
+  std::cout << "Got result from server: " << buffer << std::endl;
 
   close(serverSocket);
 

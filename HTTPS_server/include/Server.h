@@ -16,44 +16,14 @@
 #include "json_hpp/json.hpp"
 #include <fstream>
 
-
-
 namespace https{
-class Response {
-
-};
-
-class requestHendler {
-  virtual Response handler() = 0;
-};
-
-class staticVebsite : public requestHendler {
-  virtual Response handler() override {
-
-  }
-};
-
-class methodPath : public requestHendler {
-  virtual Response handler() override {
-
-  }
-};
-
-class path : public requestHendler {
-  virtual Response handler() override {
-
-  }
-};
-
 class HTTPS {
 private:
-  std::list<requestHendler *> hendlers;
   sockaddr_in address;
   int port;
   int socketFD;
 public:
   HTTPS(int port_m) : port(port_m) {
-
     socketFD = socket(AF_INET, SOCK_STREAM, 0);
     // validate socket descriptor
     if (socketFD < 0) {
@@ -68,11 +38,11 @@ public:
   ~HTTPS() = default;
 
   [[noreturn]] void run();
-  void getRequest();
-  void sendReponse();
+  virtual nlohmann::json onGetRequest(nlohmann::json request) = 0;
+  static void sendResponse(const nlohmann::json& response, int clientd);
   void bindSocket();
-  void listenClients();
-  nlohmann::json makeJson(char* buffer);
+  void listenClients() const;
+  static nlohmann::json getRequest(int clienFd);
 };
 }
 
